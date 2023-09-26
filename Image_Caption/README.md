@@ -38,21 +38,23 @@
 ```
 
 ## 2. Train
-We conduct training for a total of 20 epochs with a batch size of 64. To fine-tune the learning process, we utilize the following learning rates: encoder learning rate at 1e-4, decoder learning rate at 5e-4, and camera learning rate at 5e-7. We use *pytorch 1.8.0* and *torchvision 0.9.0*.
+We conduct training for 20 epochs with a batch size of 64. To fine-tune the learning process, we utilize the following learning rates: encoder learning rate at 1e-4, decoder learning rate at 5e-4, and camera learning rate at 5e-7. We use *pytorch 1.8.0* and *torchvision 0.9.0*.
 You will **require** a camera heating [Model.pth](https://drive.google.com/drive/folders/1Ex5AiuCfQXa_LnxDwGlw9t8zRp3_hDhF?usp=sharing) to achieve better results, then put the file in **./Camera** path. 
 
-Run *train.py*
+```
+python train.py
+```
 
 ### Pretrained files
 To run with the pre-trained weights download our [Checkpoint](https://drive.google.com/drive/folders/1Ex5AiuCfQXa_LnxDwGlw9t8zRp3_hDhF?usp=sharing) and put them into **./results/GPU_final** path. 
 
 ## 3. Test
-We validate our method trought different metrics including BLEU-1, BLEU-2, BLEU-3, BLEU-4, METEOR, and Cider. This code facilitates the extraction of 1000 privacy-preserving images from a dataset and the retrieval of their corresponding captions, while also providing metrics such as PSNR, MSE, and the model's performance evaluations.
+We validate our method through metrics including BLEU-1, BLEU-2, BLEU-3, BLEU-4, METEOR, and Cider. This code facilitates the extraction of 1000 privacy-preserving images from a dataset and retrieving their corresponding captions, while also providing metrics such as PSNR, MSE, and the model's performance evaluations.
 ```
 cd eval 
 python eval_total.py
 ```
-To obtain a privacy protected image while obtaining its associated caption, you can input an image in the following manner:
+To obtain a privacy-protected image while obtaining its associated caption, you can input an image in the following manner:
 
 ```
 cd eval
