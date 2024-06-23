@@ -10,7 +10,7 @@
 > In CVPR 2024. (\* Indicates equal PI contribution)
 
 > Paper: https://arxiv.org/pdf/2404.00777<br>
-> Video: https://youtu.be/....<br>
+> Video: https://www.youtube.com/watch?v=iYzb-P6yCvc<br>
 
 > **Abstract:** *The modern surge in camera usage alongside widespread computer vision technology applications poses significant privacy and security concerns.
 > Current artificial intelligence (AI) technologies aid in recognizing relevant events and assisting in daily tasks in homes, offices, hospitals, etc. 
