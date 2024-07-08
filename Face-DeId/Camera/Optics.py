@@ -7,17 +7,14 @@ from torch.fft import fftn, ifftn
 
 
 class Camera(nn.Module):
-    def __init__(self, device="cpu", N=256, lamdas=3, colors_CA=3, layers=16, zernike_terms=50, height_tolerance=2e-8):
+    def __init__(self, device="cpu", N=256, lamdas=3, zernike_terms=50, height_tolerance=2e-8):
         super(Camera, self).__init__()
 
         self.zi = 50e-3
         self.z0 = 5.
         self.f = 1 / (1 / self.zi + 1 / self.z0)
-        # self.f = 50e-3
         self.R = self.f * deta(torch.tensor(550e-9 * 1e6))
         self.radii = 2.0e-3
-        self.D = layers  # depth values
-        self.colors_CA = colors_CA
         self.pi = torch.tensor([np.pi], device=device)
         self.lamdas = lamdas
         self.device = device
@@ -36,8 +33,7 @@ class Camera(nn.Module):
         self.flmb = self.R / deta(self.lamb * 1e6)
         self.k = 2 * self.pi / self.lamb
 
-        # self.z = 1. / torch.linspace(1 / 0.5, 1 / 100, 16)
-        self.z = torch.tensor([0.75])
+        self.z = torch.tensor([0.75])  # Based on the depth of field for an American plane photo for facial image capture.
 
         self.du = self.L_len / self.N
         self.u = torch.arange(-1 * self.L_len / 2, self.L_len / 2, self.du, device=device)
@@ -71,8 +67,6 @@ class Camera(nn.Module):
         # --- Adding Coded Aperture Parameters --- #
         size = (1, 1, 32, 32)
         self.ca = torch.where(torch.rand(size=size) > 0.5, torch.ones(size), torch.zeros(size))
-        # self.ca = torch.rand((1, 1, 64, 64), device=self.device)
-        # self.ca = torch.ones(size=size, device=self.device)
         self.ca = nn.Parameter(self.ca, requires_grad=False)
 
         # --- Adding Parameters Regularization --- #
@@ -97,9 +91,8 @@ class Camera(nn.Module):
 
     def get_psf(self):
         self.psfs = None
-        # ca = nn.functional.interpolate(self.ca, (self.N, self.N)).squeeze(0)
         for dis in self.z:
-            t = compl_exp(-(self.k / (2 * self.flmb)) * self.XY)  # * ca
+            t = compl_exp(-(self.k / (2 * self.flmb)) * self.XY)
             focus = compl_exp((self.k / (2 * dis)) * self.XY)
 
             ph = torch.mul(self.rad, torch.mul(t, focus)) * compl_exp(self.get_phase_shift())

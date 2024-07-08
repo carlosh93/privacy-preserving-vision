@@ -43,24 +43,23 @@ elif  [ $FILE == "pretrained-models" ]; then
     mkdir -p ./pretrained_models
     mkdir -p ./pretrained_models/Lens
     URL="https://correouisedu-my.sharepoint.com/:u:/g/personal/jhon2208456_correo_uis_edu_co/EVq0kTjK3s1Kumfihm8bOYEBi9_Lq7mrYdrCqEyEBYn4DA?e=npeyVv&download=1"
-    OUT_FILE=./pretrained_models/Lens/Model_Lens.ckpt
+    OUT_FILE=./pretrained_models/Lens/150000_nets.ckpt
     wget -N $URL -O $OUT_FILE
 
     mkdir -p ./pretrained_models/LR
     URL="https://correouisedu-my.sharepoint.com/:u:/g/personal/jhon2208456_correo_uis_edu_co/ERVy4RAJ3yNPnfXcZgfxeAgBisIzYD-VAxJ6NJLJNkjZrA?e=MJxUCE&download=1"
-    OUT_FILE=./pretrained_models/LR/Model_LR.ckpt
+    OUT_FILE=./pretrained_models/LR/150000_nets.ckpt
     wget -N $URL -O $OUT_FILE
 
 elif  [ $FILE == "raf-models" ]; then
     URL="https://correouisedu-my.sharepoint.com/:u:/g/personal/jhon2208456_correo_uis_edu_co/EaLsA1C_g6dKqTXaiDWc3sgBN9PS_r2tDGDmSUb7a4pddw?e=wdIMyw&download=1"
-    ZIP_FILE=./RAF/models/
-    mkdir -p ./RAF/models/
+    ZIP_FILE=./RAFT/models/models_raft.zip
+    mkdir -p ./RAFT/models/
     wget -N $URL -O $ZIP_FILE
-    unzip $ZIP_FILE -d ./RAF/models/
+    unzip $ZIP_FILE -d ./RAFT/
     rm $ZIP_FILE
 
 else
-    echo "Available arguments are pretrained-network-celeba-hq and celeba-hq-dataset."
+    echo "Available arguments are pretrained-network-celeba-hq, celeba-hq-dataset and raf-models."
     exit 1
-
 fi

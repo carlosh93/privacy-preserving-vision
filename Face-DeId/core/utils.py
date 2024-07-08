@@ -1,13 +1,3 @@
-"""
-StarGAN v2
-Copyright (c) 2020-present NAVER Corp.
-
-This work is licensed under the Creative Commons Attribution-NonCommercial
-4.0 International License. To view a copy of this license, visit
-http://creativecommons.org/licenses/by-nc/4.0/ or send a letter to
-Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
-"""
-
 import os
 from os.path import join as ospj
 import json
@@ -166,7 +156,7 @@ def translate_using_reference(nets, args, x_src, x_ref, y_ref, filename, camera=
     # y_ref = torch.randint_like(y_ref, 0, 2)
     if camera is not None:
         x_src = camera(x_src)
-        # x_src = F.interpolate(x_src, (16, 16)).detach()
+        # x_src = F.interpolate(x_src, (16, 16)).detach() # Uncomment if you want to try the low-resolution model
         # x_src = F.interpolate(x_src, (256, 256)).detach()
         masks = nets.fan_priv.get_heatmap(x_src, Privacy=True) if args.w_hpf > 0 else None
 
@@ -204,57 +194,6 @@ def translate_using_reference(nets, args, x_src, x_ref, y_ref, filename, camera=
     # save_image(x_concat, N + 1, filename)
     # save_tensor_as_svg(x_concat.cpu().data, filename.replace('png', 'svg'), nrow=N + 1) # +3
     del x_concat
-
-
-@torch.no_grad()
-def translate_using_latent_jhon(nets, args, x_src, y_ref, filename, camera=None):
-    N, C, H, W = x_src.size()
-    wb = torch.ones(1, C, H, W).to(x_src.device)
-    x_org = x_src.clone()
-    # y_ref = torch.randint_like(y_ref, 0, 2)
-    z_tgr = torch.randn((N, 16)).to(x_src.device)
-    if camera is not None:
-        x_src = camera(x_src)
-        # x_src = F.interpolate(x_src, (16, 16)).detach()
-        # x_src = F.interpolate(x_src, (256, 256)).detach()
-        masks = nets.fan_priv.get_heatmap(x_src, Privacy=True) if args.w_hpf > 0 else None
-
-    else:
-        masks = nets.fan.get_heatmap(x_src, Privacy=False) if args.w_hpf > 0 else None
-
-    mask_rgb = jet_cmap(masks[0].cpu().squeeze(1).data.numpy())
-    mask_rgb = torch.from_numpy(mask_rgb[:, :, :, :3]).permute(0, 3, 1, 2).to(x_src.device)
-
-    x_src_with_wb = torch.cat([wb, x_src], dim=0)
-    x_org_with_wb = torch.cat([wb, x_org], dim=0)
-    mask_with_wb = torch.cat([wb, mask_rgb], dim=0)
-
-    s_ref = nets.mapping_network(z_tgr, y_ref)
-    s_ref_list = s_ref.unsqueeze(1).repeat(1, N, 1)
-    x_concat = [x_org]
-    x_concat += [mask_rgb]
-    x_concat += [x_src]
-    pattern = r'Final_expr/Base/(\w+)_Rstl/reference_(\d+).png'
-    # save_image(x_src, N + 1, filename)
-    for i, s_ref in enumerate(s_ref_list):
-        x_fake = nets.generator(x_src, s_ref, masks=masks)
-        # save_image(x_fake, N + 1, filename)
-        x_concat += [x_fake]
-
-        """output_filename = re.sub(pattern, r'Final_expr/Base/s\2/reference_\2.png', filename)
-        filename = os.path.dirname(filename) + '/' + output_filename.split('/')[2]
-        os.makedirs(filename, exist_ok=True)
-        filename = filename + '/' + output_filename.split('/')[-1]
-        save_image(x_fake, N + 1, filename.replace('reference_', 'y'))
-        save_image(x_src, N + 1, filename.replace('reference_', 'p'))
-        save_image(x_org, N + 1, filename.replace('reference_', 'x'))
-        save_image(x_ref, N + 1, filename.replace('reference_', 'r'))"""
-
-    x_concat = torch.cat(x_concat, dim=0)
-    # save_image(x_concat, N + 1, filename)
-    save_tensor_as_svg(x_concat.cpu().data, filename.replace('png', 'svg'), nrow=N + 3)
-    del x_concat
-
 
 @torch.no_grad()
 def translate_using_reference_val(nets, args, x_src, x_ref, y_ref, camera=None):
@@ -456,33 +395,6 @@ def tensor2ndarray255(images):
     return images.cpu().numpy().transpose(0, 2, 3, 1) * 255
 
 
-class MaskGenerator:
-    def __init__(self, input_size=256, mask_patch_size=32, model_patch_size=4, mask_ratio=0.6):
-        self.input_size = input_size
-        self.mask_patch_size = mask_patch_size
-        self.model_patch_size = model_patch_size
-        self.mask_ratio = mask_ratio
-
-        assert self.input_size % self.mask_patch_size == 0
-        assert self.mask_patch_size % self.model_patch_size == 0
-
-        self.rand_size = self.input_size // self.mask_patch_size
-        self.scale = self.mask_patch_size // self.model_patch_size
-
-        self.token_count = self.rand_size ** 2
-        # self.mask_count = int(torch.ceil(torch.tensor(self.token_count * self.mask_ratio)))
-
-    def __call__(self, mask_ratio, device):
-        self.mask_count = int(torch.ceil(torch.tensor(self.token_count * mask_ratio)))
-        mask_idx = torch.randperm(self.token_count)[:self.mask_count]
-        mask = torch.ones(self.token_count, dtype=torch.int, device=device)
-        mask[mask_idx] = 0
-
-        mask = mask.reshape((self.rand_size, self.rand_size))
-        mask = mask.repeat_interleave(self.scale, dim=0).repeat_interleave(self.scale, dim=1)
-        return mask.bool().reshape(-1)
-
-
 @torch.no_grad()
 def save_video_from_images(root_path, name, fps=24):
     import cv2
@@ -533,12 +445,12 @@ class loss_RAFT:
         parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision', default=False)
         parser.add_argument('--alternate_corr', action='store_true', help='use efficent correlation implementation', default=False)
         args = parser.parse_args()
-        args.model = 'RAFT/models/raft-things.pth'
+        args.model = '../RAFT/models/raft-things.pth'
 
         model = RAFT(args)
         ckpt = torch.load(args.model)
         ckpt_1 = {key.replace('module.', ''): val for key, val in ckpt.items() if 'module.' in key}
-        model.load_state_dict(ckpt_1)
+        model.load_state_dict(ckpt_1, strict=True)
 
         self.model = model
         self.model.to(DEVICE)
@@ -548,18 +460,3 @@ class loss_RAFT:
     def __call__(self, frame1, frame2):
         rstl = [self.model(frame1[x, None, ...], frame2[x, None, ...], iters=20, test_mode=True).mean().abs() for x in range(frame1.shape[0])]
         return sum(rstl)
-
-
-def chamfer_distance(landmarks_pred, landmarks_target):
-    # Calculate the pairwise L2 distances between landmarks
-    pred_to_target_distances = torch.cdist(landmarks_pred, landmarks_target)
-    target_to_pred_distances = torch.cdist(landmarks_target, landmarks_pred)
-
-    # Find the minimum distance for each predicted landmark and target landmark
-    min_pred_to_target = pred_to_target_distances.min(dim=-1)[0]
-    min_target_to_pred = target_to_pred_distances.min(dim=-1)[0]
-
-    # Calculate the mean of the minimum distances over the batch
-    chamfer_loss = torch.mean(min_pred_to_target, dim=-1) + torch.mean(min_target_to_pred, dim=-1)
-
-    return chamfer_loss

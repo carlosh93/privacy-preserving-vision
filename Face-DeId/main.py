@@ -9,10 +9,6 @@ from core.data_loader import get_train_loader
 from core.data_loader import get_test_loader
 from core.solver import Solver
 
-
-# from core.solver_org import Solver
-
-
 def str2bool(v):
     return v.lower() in 'true'
 
@@ -27,19 +23,6 @@ def main(args):
     cudnn.benchmark = True
     torch.manual_seed(args.seed)
 
-    # Check if the folder exist
-    if os.path.exists(args.checkpoint_save_dir):
-        # List files folder
-        files_in_folder = os.listdir(args.checkpoint_save_dir)
-        for archivo in files_in_folder:
-            if int(archivo[:6]) > args.resume_iter:
-                args.resume_iter = int(archivo[:6])
-                args.checkpoint_dir = args.checkpoint_save_dir
-
-        print("\n\nThere is a checkpoint for this run from iter {:.0f}".format(args.resume_iter))
-    else:
-        print("\n\nNo checkpoint found in {}....  Start training from scratch.".format(args.checkpoint_save_dir))
-
     if args.use_wandb:
         try:
             import wandb
@@ -47,14 +30,6 @@ def main(args):
             wandb.init(name=args_wandb['wandb_name'], dir=args_wandb['wandb_dir'], project=args_wandb['wandb_project'], config=args_wandb,
                        resume=args_wandb['resume_wandb'])
 
-            main_script_path = "./core/solver.py"
-            # Create an artifact
-            artifact = wandb.Artifact("main_solver", type="code")
-            # Add the main.py file to the artifact
-            artifact.add_file(main_script_path)
-
-            # Log the artifact
-            wandb.log_artifact(artifact)
 
         except ImportError:
             print("WandB is not installed. Please install it using 'pip install wandb'.")
@@ -83,28 +58,6 @@ def main(args):
                                             shuffle=True,
                                             num_workers=args.num_workers))
         solver.train(loaders)
-
-    elif args.mode == 'finetune':
-        assert len(subdirs(args.train_img_dir)) == args.num_domains
-        assert len(subdirs(args.val_img_dir)) == args.num_domains
-        loaders = Munch(src=get_train_loader(root=args.train_img_dir,
-                                             which='source',
-                                             img_size=args.img_size,
-                                             batch_size=args.batch_size,
-                                             prob=args.randcrop_prob,
-                                             num_workers=args.num_workers),
-                        ref=get_train_loader(root=args.train_img_dir,
-                                             which='reference',
-                                             img_size=args.img_size,
-                                             batch_size=args.batch_size,
-                                             prob=args.randcrop_prob,
-                                             num_workers=args.num_workers),
-                        val=get_test_loader(root=args.val_img_dir,
-                                            img_size=args.img_size,
-                                            batch_size=args.val_batch_size,
-                                            shuffle=True,
-                                            num_workers=args.num_workers))
-        solver.finetune_lab(loaders)
 
     elif args.mode == 'sample':
         assert len(subdirs(args.src_dir)) == args.num_domains
@@ -163,7 +116,7 @@ if __name__ == '__main__':
                         help='Probabilty of using random-resized cropping')
     parser.add_argument('--total_iters', type=int, default=300000,
                         help='Number of total iterations')
-    parser.add_argument('--resume_iter', type=int, default=1,
+    parser.add_argument('--resume_iter', type=int, default=0,
                         help='Iterations to resume training/testing')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='Batch size for training')
@@ -184,7 +137,7 @@ if __name__ == '__main__':
 
     # misc
     parser.add_argument('--mode', type=str, required=True,
-                        choices=['train', 'finetune', 'sample', 'eval', 'align'],
+                        choices=['train', 'sample', 'eval', 'align'],
                         help='This argument is used in solver')
     parser.add_argument('--num_workers', type=int, default=4,
                         help='Number of workers used in DataLoader')
@@ -192,14 +145,14 @@ if __name__ == '__main__':
                         help='Seed for random number generator')
 
     # directory for training
-    parser.add_argument('--train_img_dir', type=str, default='data/celeba_hq/train/',
+    parser.add_argument('--train_img_dir', type=str, default='/home/jhon_lopez/Desktop/DataSets/celeba_hq/train',
                         help='Directory containing training images')
-    parser.add_argument('--val_img_dir', type=str, default='data/celeba_hq/val/',
+    parser.add_argument('--val_img_dir', type=str, default='/home/jhon_lopez/Desktop/DataSets/celeba_hq/val',
                         help='Directory containing validation images')
     parser.add_argument('--sample_dir', type=str, default='expr/model_1/Samples/',
                         help='Directory for saving generated images')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/',
-                        help='Directory for original network checkpoints')
+                        help='Directory for original StarGANv2 network checkpoints')
     parser.add_argument('--checkpoint_save_dir', type=str, default='expr/model_1/Checkpoints/',
                         help='Directory to save network checkpoints')
 
@@ -227,13 +180,11 @@ if __name__ == '__main__':
     parser.add_argument('--save_every', type=int, default=10000)
     parser.add_argument('--eval_every', type=int, default=1e6)
     parser.add_argument('--debug_every', type=int, default=100)
-    parser.add_argument('--masked_up_to', type=int, default=0)
-    parser.add_argument('--patch_size', type=int, default=8)
 
     # Camera configuration
     parser.add_argument('--camera_ckpt', type=str, default='checkpoints/Model_wing.pth')
 
-    # Add weights for the loss LPIPs and MSE mask
+    # Add weights for the loss LPIPs and Optical flow
     parser.add_argument('--lpips', type=float, default=2000)
     parser.add_argument('--flow', type=float, default=10)
 

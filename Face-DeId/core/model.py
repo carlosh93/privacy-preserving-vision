@@ -6,9 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from core.wing import FAN
-from core.unet import unet
 
 
 class ResBlk(nn.Module):
